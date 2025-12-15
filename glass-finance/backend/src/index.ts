@@ -10,6 +10,9 @@ import authRoutes from './routes/authRoutes';
 import userRoutes from './routes/userRoutes';
 import transactionRoutes from './routes/transactionRoutes';
 import categoryRoutes from './routes/categoryRoutes';
+import budgetRoutes from './routes/budgetRoutes';
+import analyticsRoutes from './routes/analyticsRoutes';
+import { startScheduledJobs } from './services/schedulerService';
 
 // Load environment variables
 dotenv.config();
@@ -49,6 +52,7 @@ app.get('/api/v1', (_req: express.Request, res: express.Response) => {
             transactions: '/api/v1/transactions',
             categories: '/api/v1/categories',
             budgets: '/api/v1/budgets',
+            analytics: '/api/v1/analytics',
         },
     });
 });
@@ -58,6 +62,8 @@ app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/users', userRoutes);
 app.use('/api/v1/transactions', transactionRoutes);
 app.use('/api/v1/categories', categoryRoutes);
+app.use('/api/v1/budgets', budgetRoutes);
+app.use('/api/v1/analytics', analyticsRoutes);
 
 // Error handling
 app.use(errorHandler);
@@ -76,6 +82,9 @@ app.listen(PORT, () => {
     console.log(`🚀 Server is running on port ${PORT}`);
     console.log(`📊 Environment: ${config.nodeEnv}`);
     console.log(`🔗 API: http://localhost:${PORT}/api/v1`);
+
+    // Start scheduled jobs
+    startScheduledJobs();
 });
 
 export default app;
