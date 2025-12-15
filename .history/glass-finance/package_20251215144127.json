@@ -1,0 +1,38 @@
+{
+    "name": "glass-finance",
+    "version": "1.0.0",
+    "private": true,
+    "description": "Personal Finance Management App with Glassmorphism UI",
+    "workspaces": [
+        "frontend",
+        "backend",
+        "shared"
+    ],
+    "scripts": {
+        "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
+        "dev:frontend": "npm run dev --workspace=frontend",
+        "dev:backend": "npm run dev --workspace=backend",
+        "build": "npm run build --workspaces",
+        "build:frontend": "npm run build --workspace=frontend",
+        "build:backend": "npm run build --workspace=backend",
+        "test": "npm run test --workspaces",
+        "lint": "npm run lint --workspaces",
+        "docker:build": "docker-compose build",
+        "docker:up": "docker-compose up -d",
+        "docker:down": "docker-compose down",
+        "docker:logs": "docker-compose logs -f",
+        "prisma:generate": "npm run prisma:generate --workspace=backend",
+        "prisma:migrate": "npm run prisma:migrate --workspace=backend",
+        "prisma:studio": "npm run prisma:studio --workspace=backend",
+        "clean": "npm run clean --workspaces && rm -rf node_modules"
+    },
+    "devDependencies": {
+        "concurrently": "^8.2.2"
+    },
+    "engines": {
+        "node": ">=18.0.0",
+        "npm": ">=9.0.0"
+    },
+    "author": "GlassFinance Team",
+    "license": "MIT"
+}

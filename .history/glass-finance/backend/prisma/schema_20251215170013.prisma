@@ -1,0 +1,242 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================
+// MODELS
+// ============================================
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  username     String   @unique
+  passwordHash String   @map("password_hash")
+  avatar       String?
+  currency     String   @default("VND")
+  language     String   @default("vi")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  categories          Category[]
+  transactions        Transaction[]
+  budgets             Budget[]
+  savingsGoals        SavingsGoal[]
+  recurringBills      RecurringBill[]
+  notifications       Notification[]
+  familyMemberships   FamilyMembership[]
+  ownedFamilyGroups   FamilyGroup[]
+  investmentPortfolios InvestmentPortfolio[]
+
+  @@map("users")
+}
+
+model Category {
+  id       String  @id @default(cuid())
+  userId   String  @map("user_id")
+  name     String
+  icon     String
+  color    String
+  type     String  @default("expense") // income, expense, both
+  parentId String? @map("parent_id")
+
+  // Relations
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  parent       Category?     @relation("CategoryHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
+  children     Category[]    @relation("CategoryHierarchy")
+  transactions Transaction[]
+  budgets      Budget[]
+
+  @@index([userId])
+  @@index([parentId])
+  @@index([type])
+  @@map("categories")
+}
+
+model Transaction {
+  id            String   @id @default(cuid())
+  userId        String   @map("user_id")
+  amount        Float
+  categoryId    String   @map("category_id")
+  description   String?
+  date          DateTime
+  type          String // income, expense
+  paymentMethod String?  @map("payment_method")
+  location      String?
+  attachments   String? // JSON array of file paths
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category Category @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+
+  @@index([userId])
+  @@index([categoryId])
+  @@index([date])
+  @@index([type])
+  @@index([userId, date])
+  @@map("transactions")
+}
+
+model Budget {
+  id                   String    @id @default(cuid())
+  userId               String    @map("user_id")
+  categoryId           String?   @map("category_id")
+  amount               Float
+  period               String // daily, weekly, monthly, yearly
+  startDate            DateTime  @map("start_date")
+  endDate              DateTime? @map("end_date")
+  notificationsEnabled Boolean   @default(true) @map("notifications_enabled")
+  createdAt            DateTime  @default(now()) @map("created_at")
+  updatedAt            DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([categoryId])
+  @@index([period])
+  @@index([startDate, endDate])
+  @@map("budgets")
+}
+
+model SavingsGoal {
+  id            String    @id @default(cuid())
+  userId        String    @map("user_id")
+  name          String
+  targetAmount  Float     @map("target_amount")
+  currentAmount Float     @default(0) @map("current_amount")
+  deadline      DateTime?
+  icon          String?
+  color         String?
+  description   String?
+  isAchieved    Boolean   @default(false) @map("is_achieved")
+  achievedAt    DateTime? @map("achieved_at")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([isAchieved])
+  @@index([deadline])
+  @@map("savings_goals")
+}
+
+model RecurringBill {
+  id                    String    @id @default(cuid())
+  userId                String    @map("user_id")
+  name                  String
+  amount                Float
+  frequency             String // daily, weekly, monthly, yearly
+  nextDueDate           DateTime  @map("next_due_date")
+  categoryId            String?   @map("category_id")
+  description           String?
+  isActive              Boolean   @default(true) @map("is_active")
+  reminderDays          Int       @default(3) @map("reminder_days")
+  autoCreateTransaction Boolean   @default(false) @map("auto_create_transaction")
+  createdAt             DateTime  @default(now()) @map("created_at")
+  updatedAt             DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([nextDueDate])
+  @@index([isActive])
+  @@map("recurring_bills")
+}
+
+// ============================================
+// EXTENDED MODELS
+// ============================================
+
+model Notification {
+  id        String    @id @default(cuid())
+  userId    String    @map("user_id")
+  type      String // budget_alert, bill_reminder, goal_achieved, transaction_added, system
+  title     String
+  message   String
+  status    String    @default("unread") // unread, read, archived
+  data      String? // JSON data for additional info
+  createdAt DateTime  @default(now()) @map("created_at")
+  readAt    DateTime? @map("read_at")
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("notifications")
+}
+
+model FamilyGroup {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  ownerId     String   @map("owner_id")
+  currency    String   @default("VND")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  owner   User               @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  members FamilyMembership[]
+
+  @@index([ownerId])
+  @@map("family_groups")
+}
+
+model FamilyMembership {
+  id          String   @id @default(cuid())
+  groupId     String   @map("group_id")
+  userId      String   @map("user_id")
+  role        String   @default("member") // owner, admin, member, viewer
+  permissions String? // JSON array of permissions
+  joinedAt    DateTime @default(now()) @map("joined_at")
+
+  // Relations
+  group FamilyGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  user  User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([groupId, userId])
+  @@index([groupId])
+  @@index([userId])
+  @@map("family_memberships")
+}
+
+model InvestmentPortfolio {
+  id            String    @id @default(cuid())
+  userId        String    @map("user_id")
+  name          String
+  type          String // stocks, bonds, crypto, real_estate, mutual_funds, other
+  symbol        String? // Stock symbol, crypto ticker, etc.
+  quantity      Float
+  purchasePrice Float     @map("purchase_price")
+  currentPrice  Float?    @map("current_price")
+  purchaseDate  DateTime  @map("purchase_date")
+  notes         String?
+  isActive      Boolean   @default(true) @map("is_active")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([type])
+  @@index([isActive])
+  @@map("investment_portfolios")
+}
